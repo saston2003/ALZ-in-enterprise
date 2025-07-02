@@ -1,0 +1,32 @@
+  rcg1: #do not change this
+    name: "EES-rcg" #do not change this
+    priority: 100 #do not change this
+    network_rule_collections:
+      - name: "Allow-EES"
+        priority: 100
+        action: "Allow"
+        rules:
+          # Allows EES to talk to ERP Facade over port 80
+          - name: "Allow-HTTP-Rule"
+            source_addresses: ["*"] # ESS Main subnet range
+            destination_addresses: ["*"] # Erp Facade Main subnet range
+            destination_ports: ["80"]
+            protocols: ["TCP"]
+          - name: "Allow-SSH-Rule"
+            source_addresses: ["*"]
+            destination_addresses: ["*"]
+            destination_ports: ["22"]
+            protocols: ["TCP"]
+    application_rule_collections:
+      - name: "Allow-EES-Apps"
+        priority: 200
+        action: "Allow"
+        rules:
+          - name: "Allow-Google"
+            source_addresses: ["*"]
+            destination_fqdns: ["www.google.com"]
+            protocols:
+              - type: Http
+                port: 80
+              - type: Https
+                port: 443

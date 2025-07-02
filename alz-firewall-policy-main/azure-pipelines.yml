@@ -1,0 +1,125 @@
+trigger:
+  branches:
+    include:
+      - main
+
+  paths:
+    exclude:
+    - 'README.md'
+    - 'azure-pipelines.yml'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+- group: alz-mgmt-firewall-policy
+
+parameters:
+- name: action
+  displayName: 'Select Action'
+  type: string
+  default: 'plan'
+  values:
+  - plan
+  - apply
+  - destroy
+
+stages:
+- stage: Plan
+  displayName: 'Terraform Init and Plan'
+  condition: or(eq(variables['Build.Reason'], 'IndividualCI'), eq('${{ parameters.action }}', 'plan'))
+  jobs:
+  - job: Plan
+    steps:
+    - script: |
+        echo "##[section]Install Terraform"
+        wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+        unzip terraform_1.7.5_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -version
+      displayName: 'Install Terraform'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: '$(service-connection-plan)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          export ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(ARM_TENANT_ID)
+          export ARM_CLIENT_ID=$(Client-id)
+          export ARM_CLIENT_SECRET=$(Client-secret)
+
+          echo "##[section]Terraform Init"
+          terraform init 
+
+          echo "##[section]Terraform Plan"
+          terraform plan -out=tfplan
+      displayName: 'Terraform Init and Plan'
+    - publish: $(System.DefaultWorkingDirectory)/tfplan
+      artifact: tfplan
+
+- stage: Apply
+  displayName: 'Terraform Apply'
+  condition: or(succeeded('Plan'), eq('${{ parameters.action }}', 'apply'))
+  dependsOn: Plan
+  jobs:
+  - job: Apply
+    steps:
+    - script: |
+        echo "##[section]Install Terraform"
+        wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+        unzip terraform_1.7.5_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -version
+      displayName: 'Install Terraform'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: '$(service-connection-apply)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          export ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(ARM_TENANT_ID)
+          export ARM_CLIENT_ID=$(Client-id)
+          export ARM_CLIENT_SECRET=$(Client-secret)
+
+          echo "##[section]Terraform Init"
+          terraform init 
+
+          echo "##[section]Terraform Plan"
+          terraform plan -out=tfplan
+
+          echo "##[section]Terraform Apply"
+          terraform apply -auto-approve tfplan
+      displayName: 'Terraform Apply'
+
+- stage: Destroy
+  displayName: 'Terraform Destroy'
+  condition: eq('${{ parameters.action }}', 'destroy')
+  jobs:
+  - job: DestroyJob
+    steps:
+    - script: |
+        echo "##[section]Install Terraform"
+        wget https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+        unzip terraform_1.7.5_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -version
+      displayName: 'Install Terraform'
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: '$(service-connection-apply)'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          export ARM_SUBSCRIPTION_ID=$(ARM_SUBSCRIPTION_ID)
+          export ARM_TENANT_ID=$(ARM_TENANT_ID)
+          export ARM_CLIENT_ID=$(Client-id)
+          export ARM_CLIENT_SECRET=$(Client-secret)
+
+          echo "##[section]Terraform Init"
+          terraform init 
+
+          echo "##[section]Terraform Destroy"
+          terraform destroy -auto-approve
+      displayName: 'Terraform Apply'

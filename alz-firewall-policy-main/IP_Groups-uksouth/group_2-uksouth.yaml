@@ -1,0 +1,4 @@
+  group2:
+    name: "ip-group-2"
+    cidrs:
+      - "172.16.0.0/16"

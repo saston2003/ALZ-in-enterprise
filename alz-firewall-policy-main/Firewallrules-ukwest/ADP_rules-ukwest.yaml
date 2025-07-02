@@ -1,0 +1,44 @@
+  rcg4: #do not change this
+    name: "ADP-rcg" #do not change this
+    priority: 400 #do not change this
+    network_rule_collections:
+      - name: "Allow-FSS-Ports"
+        priority: 100
+        action: "Allow"
+        rules:
+          - name: "Allow-HTTP-Rule"
+            source_addresses: ["*"]
+            destination_addresses: ["*"]
+            destination_ports: ["80"]
+            protocols: ["TCP"]
+          - name: "Allow-SSH-Rule"
+            source_addresses: ["*"]
+            destination_addresses: ["*"]
+            destination_ports: ["22"]
+            protocols: ["TCP"]
+    application_rule_collections:
+      - name: "Allow-FSS-Apps"
+        priority: 200
+        action: "Allow"
+        rules:
+          - name: "Allow-Google"
+            source_addresses: ["*"]
+            destination_fqdns: ["www.google.com"]
+            protocols:
+              - type: Http
+                port: 80
+              - type: Https
+                port: 443
+    nat_rule_collections:
+      - name: "NAT-rcg4"
+        priority: 300
+        action: "Dnat"
+        rules:
+          - name: "NAT-Rule-rcg4"
+            rule_type: "Dnat"
+            source_addresses: ["*"]
+            destination_address: "20.254.153.238"
+            destination_ports: ["80"]
+            translated_address: "1.1.1.1"
+            translated_port: "8080"
+            protocols: ["TCP"]
